@@ -2,7 +2,7 @@
 # Forked from microsoft/VisualProfiler-Unity 
 Modified to make it work in screen space for non vr - Tested on Android
 
-UPM git add path - *https://github.com/gitindro/VisualProfiler-Unity.git?path=/com.microsoft.mixedreality.visualprofiler#v4.0.0*
+UPM git add path - *https://github.com/gitindro/VisualProfiler-Unity.git?path=/com.ot.visualprofiler#v4.0.0*
 ################################################################################
 
 # Visual Profiler
