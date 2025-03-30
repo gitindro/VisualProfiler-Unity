@@ -37,6 +37,7 @@ namespace Microsoft.MixedReality.Profiling
     /// </summary>
     public sealed class VisualProfiler : MonoBehaviour, ISerializationCallbackReceiver
     {
+        static readonly Vector3 defaultWindowSize = new Vector3(0.8f, 0.08f, 1.0f);
         [Header("Profiler Settings")]
         [SerializeField, Tooltip("Is the profiler currently visible? If disabled, prevents the profiler from rendering but still allows it to track memory usage.")]
         private bool isVisible = true;
@@ -66,7 +67,7 @@ namespace Microsoft.MixedReality.Profiling
             }
         }
 
-        [SerializeField, Min(0.0f), Tooltip("What frame rate should the app target if one cannot be determined by the XR device.")]
+        [SerializeField, Tooltip("What frame rate should the app target if one cannot be determined by the XR device.")]
         private float defaultFrameRate = 60.0f;
 
         /// <summary>
@@ -75,19 +76,7 @@ namespace Microsoft.MixedReality.Profiling
         public float DefaultFrameRate
         {
             get { return defaultFrameRate; }
-            set { defaultFrameRate = Mathf.Max(value, 0.0f); }
-        }
-
-        [SerializeField, Range(0.0f, 1.0f), Tooltip("A missed frame is considered when the frame rate is less than the target frame rate times the missed frame percentage.")]
-        private float missedFramePercentage = 0.9f;
-
-        /// <summary>
-        /// A missed frame is considered when the frame rate is less than the target frame rate times the missed frame percentage."
-        /// </summary>
-        public float MissedFramePercentage
-        {
-            get { return missedFramePercentage; }
-            set { missedFramePercentage = Mathf.Clamp01(value); }
+            set { defaultFrameRate = value; }
         }
 
         [SerializeField, Range(0, 2), Tooltip("How many decimal places to display on numeric strings.")]
@@ -157,7 +146,7 @@ namespace Microsoft.MixedReality.Profiling
             set { windowOffset = value; }
         }
 
-        [SerializeField, Range(0.5f, 10.0f), Tooltip("Use to scale the window size up or down, can simulate a zooming effect.")]
+        [SerializeField, Range(0.5f, 5.0f), Tooltip("Use to scale the window size up or down, can simulate a zooming effect.")]
         private float windowScale = 1.0f;
 
         /// <summary>
@@ -166,7 +155,7 @@ namespace Microsoft.MixedReality.Profiling
         public float WindowScale
         {
             get { return windowScale; }
-            set { windowScale = Mathf.Clamp(value, 0.5f, 10.0f); }
+            set { windowScale = Mathf.Clamp(value, 0.5f, 5.0f); }
         }
 
         [SerializeField, Range(0.0f, 100.0f), Tooltip("How quickly to interpolate the window towards its target position and rotation.")]
@@ -191,30 +180,6 @@ namespace Microsoft.MixedReality.Profiling
         {
             get { return snapWindow; }
             set { snapWindow = value; }
-        }
-
-        [SerializeField, Tooltip("Should the window always align to the camera? (No local rotation.)")]
-        private bool alignToCamera = false;
-
-        /// <summary>
-        /// Should the window always align to the camera? (No local rotation.)
-        /// </summary>
-        public bool AlignToCamera
-        {
-            get { return alignToCamera; }
-            set { alignToCamera = value; }
-        }
-
-        [SerializeField, Tooltip("If specified, the profiler window will follow this transform instead of the main camera.")]
-        private Transform transformToFollow = null;
-
-        /// <summary>
-        /// If specified, the profiler window will follow this transform instead of the main camera.
-        /// </summary>
-        public Transform TransformToFollow
-        {
-            get { return transformToFollow; }
-            set { transformToFollow = value; }
         }
 
         /// <summary>
@@ -258,18 +223,6 @@ namespace Microsoft.MixedReality.Profiling
         private string[] toggleKeyworlds = new string[] { "Profiler", "Toggle Profiler", "Show Profiler", "Hide Profiler" };
 
         [Header("Visual Settings")]
-        [SerializeField, Range(0, 31), Tooltip("The layer index used for rendering the profiler (range between 0, 31 inclusive). Can be used in conjuction with a camera's \"Culling Mask\" to chose which camera renders the profiler.")]
-        private int layer = 0;
-
-        /// <summary>
-        /// The layer index used for rendering the profiler (range between 0, 31 inclusive). Can be used in conjuction with a camera's \"Culling Mask\" to chose which camera renders the profiler.
-        /// </summary>
-        public int Layer
-        {
-            get { return layer; }
-            set { layer = Mathf.Clamp(value, 0, 31); }
-        }
-
         [SerializeField, Tooltip("The material to use when rendering the profiler. The material should use the \"Hidden / Visual Profiler\" shader and have a font texture.")]
         private Material material;
 
@@ -332,10 +285,6 @@ namespace Microsoft.MixedReality.Profiling
                 public void Update()
                 {
                     long nextSample = recorder.LastValue;
-                    if (nextSample == 0) // ProfilerCounterValue doesn't update the LastValue.
-                    {
-                        nextSample = recorder.CurrentValue;
-                    }
 
                     sumOfSamples -= sampleBuffer[nextSampleIndex];
                     sumOfSamples += nextSample;
@@ -390,8 +339,6 @@ namespace Microsoft.MixedReality.Profiling
             public TextData Text { get; set; }
             public float LastValuePresented { get; set; }
             public bool HasEverPresented { get; set; }
-            public ProfilerMarkerDataUnit MarkerUnitType { get; private set; }
-            public string DisplayUnitSuffix { get; private set; }
 
             private bool running = false;
 
@@ -400,19 +347,6 @@ namespace Microsoft.MixedReality.Profiling
                 foreach (var marker in Markers)
                 {
                     marker.Init(SampleCapacity);
-                }
-
-                if (Markers[0] != null)
-                {
-                    MarkerUnitType = Markers[0].recorder.UnitType;
-                    switch (MarkerUnitType)
-                    {
-                        case ProfilerMarkerDataUnit.TimeNanoseconds: DisplayUnitSuffix = "ms"; break;
-                        case ProfilerMarkerDataUnit.Bytes: DisplayUnitSuffix = "kbps"; break;
-                        case ProfilerMarkerDataUnit.Percent: DisplayUnitSuffix = "%"; break;
-                        case ProfilerMarkerDataUnit.FrequencyHz: DisplayUnitSuffix = "hz"; break;
-                        default: DisplayUnitSuffix = ""; break;
-                    }
                 }
 
                 running = true;
@@ -480,18 +414,6 @@ namespace Microsoft.MixedReality.Profiling
                 sum /= SampleCapacity;
 
                 return sum;
-            }
-
-            public float CalculateDisplayValue()
-            {
-                float average = CalculateAverage();
-
-                switch (MarkerUnitType)
-                {
-                    case ProfilerMarkerDataUnit.TimeNanoseconds: return average * 1e-6f; // Milliseconds
-                    case ProfilerMarkerDataUnit.Bytes: return average / 125.0f; // Kilobits/second
-                    default: return average;
-                }
             }
         }
 
@@ -615,7 +537,6 @@ namespace Microsoft.MixedReality.Profiling
         private ProfilerRecorder meshStatsRecorder;
 #endif
         private Recorder[] srpBatchesRecorders;
-        private ProfilerRecorder systemUsedMemoryRecorder;
 
         // Rendering state.
         private Mesh quadMesh;
@@ -627,7 +548,6 @@ namespace Microsoft.MixedReality.Profiling
         private bool instanceColorsDirty = false;
         private bool instanceBaseColorsDirty = false;
         private bool instanceUVOffsetScaleXDirty = false;
-        private bool customUpdateInUse = false;
 
         /// <summary>
         /// Reset any stats the profiler is tracking. Call this if you would like to restart tracking 
@@ -646,19 +566,6 @@ namespace Microsoft.MixedReality.Profiling
             memoryUsage = 0;
             peakMemoryUsage = 0;
             limitMemoryUsage = 0;
-        }
-
-        /// <summary>
-        /// Allows for an app to specific a custom point in the frame to call update. (Should be called once every frame.)
-        /// </summary>
-        public void CustomUpdate()
-        {
-            customUpdateInUse = true;
-
-            if (isActiveAndEnabled)
-            {
-                InternalUpdate();
-            }
         }
 
         private void OnEnable()
@@ -713,8 +620,6 @@ namespace Microsoft.MixedReality.Profiling
             }
 #endif
 
-            systemUsedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
-
             BuildWindow();
 
 #if UNITY_STANDALONE_WIN || UNITY_WSA
@@ -732,8 +637,6 @@ namespace Microsoft.MixedReality.Profiling
                 keywordRecognizer = null;
             }
 #endif
-
-            systemUsedMemoryRecorder.Dispose();
 
             foreach (var profilerGroup in ProfilerGroups)
             {
@@ -768,14 +671,6 @@ namespace Microsoft.MixedReality.Profiling
 
         private void LateUpdate()
         {
-            if (customUpdateInUse == false)
-            {
-                InternalUpdate();
-            }
-        }
-
-        private void InternalUpdate()
-        {
 #if ENABLE_PROFILER
             foreach (var profilerGroup in ProfilerGroups)
             {
@@ -791,7 +686,7 @@ namespace Microsoft.MixedReality.Profiling
                 if (cameraTransform != null)
                 {
                     Vector3 targetPosition = CalculateWindowPosition(cameraTransform);
-                    Quaternion targetRotaton = CalculateWindowRotation(cameraTransform);
+                    Quaternion targetRotaton = Quaternion.identity;//CalculateWindowRotation(cameraTransform);
 
                     if (snapWindow)
                     {
@@ -801,9 +696,9 @@ namespace Microsoft.MixedReality.Profiling
                     else
                     {
                         float t = Time.deltaTime * windowFollowSpeed;
-                        windowPosition = Vector3.Lerp(windowPosition, targetPosition, t);
+                        windowPosition = Vector3.Lerp(windowPosition, CalculateWindowPosition(cameraTransform), t);
                         // Lerp rather than slerp for speed over quality.
-                        windowRotation = Quaternion.Lerp(windowRotation, targetRotaton, t);
+                        windowRotation = Quaternion.identity;// Quaternion.Lerp(windowRotation, CalculateWindowRotation(cameraTransform), t);
                     }
                 }
 
@@ -853,7 +748,7 @@ namespace Microsoft.MixedReality.Profiling
                     int lastGpuFrameRate = Mathf.Min(Mathf.RoundToInt(SmoothGpuFrameRate), maxTargetFrameRate);
 
                     // TODO - [Cameron-Micka] Ideally we would query a device specific API (like the HolographicFramePresentationReport) to detect missed frames.
-                    bool missedFrame = lastCpuFrameRate < (int)(TargetFrameRate * missedFramePercentage);
+                    bool missedFrame = lastCpuFrameRate < ((int)(TargetFrameRate) - 1);
                     Color frameColor = missedFrame ? missedFrameRateColor : targetFrameRateColor;
                     Vector4 frameIcon = missedFrame ? characterUVs['X'] : characterUVs[' '];
 
@@ -1017,23 +912,16 @@ namespace Microsoft.MixedReality.Profiling
                 {
                     if (profilerGroup.ReadyToPresent())
                     {
-                        float value = profilerGroup.CalculateDisplayValue();
+                        float milliseconds = profilerGroup.CalculateAverage() * 1e-6f;
 
-                        if (WillDisplayedProfilerValueDiffer(profilerGroup.LastValuePresented, value, displayedDecimalDigits))
+                        if (WillDisplayedMillisecondsDiffer(profilerGroup.LastValuePresented, milliseconds, displayedDecimalDigits))
                         {
                             profilerGroup.HasEverPresented = true;
-                            profilerGroup.LastValuePresented = value;
+                            profilerGroup.LastValuePresented = milliseconds;
 
-                            Color color = Color.white;
-
-                            // Only apply frame time budget coloring to time profilers
-                            if (profilerGroup.MarkerUnitType == ProfilerMarkerDataUnit.TimeNanoseconds)
-                            {
-                                float budget = TargetFrameTime * profilerGroup.BudgetPercentage;
-                                color = value <= budget ? targetFrameRateColor : missedFrameRateColor;
-                            }
-
-                            ProfilerValueToString(stringBuffer, displayedDecimalDigits, profilerGroup.Text, value, profilerGroup.DisplayUnitSuffix, color, maxStringLength);
+                            float budget = TargetFrameTime * profilerGroup.BudgetPercentage;
+                            Color color = milliseconds <= budget ? targetFrameRateColor : missedFrameRateColor;
+                            MillisecondsToString(stringBuffer, displayedDecimalDigits, profilerGroup.Text, milliseconds, color, maxStringLength);
                         }
                     }
                     else if (profilerGroup.HasEverPresented == false)
@@ -1041,7 +929,7 @@ namespace Microsoft.MixedReality.Profiling
                         profilerGroup.HasEverPresented = true;
                         profilerGroup.LastValuePresented = -1.0f;
 
-                        ProfilerValueToString(stringBuffer, displayedDecimalDigits, profilerGroup.Text, -1.0f, profilerGroup.DisplayUnitSuffix, Color.white, maxStringLength);
+                        MillisecondsToString(stringBuffer, displayedDecimalDigits, profilerGroup.Text, -1.0f, Color.white, maxStringLength);
                     }
                 }
 #endif
@@ -1070,7 +958,7 @@ namespace Microsoft.MixedReality.Profiling
 
                 if (material != null)
                 {
-                    Graphics.DrawMeshInstanced(quadMesh, 0, material, instanceMatrices, instanceMatrices.Length, instancePropertyBlock, UnityEngine.Rendering.ShadowCastingMode.Off, false, layer);
+                    Graphics.DrawMeshInstanced(quadMesh, 0, material, instanceMatrices, instanceMatrices.Length, instancePropertyBlock, UnityEngine.Rendering.ShadowCastingMode.Off, false);
                 }
             }
             else
@@ -1104,7 +992,7 @@ namespace Microsoft.MixedReality.Profiling
 
             Vector4 spaceUV = characterUVs[' '];
 
-            Vector3 defaultWindowSize = new Vector3(0.2f, 0.04f, 1.0f);
+            
             float edge = defaultWindowSize.x * 0.5f;
             float[] edges = new float[] { -edge, -0.03f, edge };
 
@@ -1280,17 +1168,17 @@ namespace Microsoft.MixedReality.Profiling
             StringBuilder stringBuilder = new StringBuilder(32);
             StringBuilder milisecondStringBuilder = new StringBuilder(16);
 
-            // Display nothing for index zero.
-            frameRateStrings[0] = ToCharArray(stringBuilder);
-            gpuFrameRateStrings[0] = ToCharArray(stringBuilder);
-
-            for (int i = 1; i < frameRateStrings.Length; ++i)
+            for (int i = 0; i < frameRateStrings.Length; ++i)
             {
-                float milliseconds = (i == 0) ? 0.0f : (1.0f / i) * 1000.0f;
-                milisecondStringBuilder.AppendFormat(displayedDecimalFormat, milliseconds);
+                float miliseconds = (i == 0) ? 0.0f : (1.0f / i) * 1000.0f;
+                milisecondStringBuilder.AppendFormat(displayedDecimalFormat, miliseconds);
+                string frame = "-", ms = "-.-";
 
-                string frame = i.ToString();
-                string ms = milisecondStringBuilder.ToString();
+                if (i != 0)
+                {
+                    frame = i.ToString();
+                    ms = milisecondStringBuilder.ToString();
+                }
 
                 if (i == (frameRateStrings.Length - 1))
                 {
@@ -1304,6 +1192,7 @@ namespace Microsoft.MixedReality.Profiling
                 frameRateStrings[i] = ToCharArray(stringBuilder);
 
                 stringBuilder.Length = 0;
+
 
                 if (i == (frameRateStrings.Length - 1))
                 {
@@ -1338,20 +1227,14 @@ namespace Microsoft.MixedReality.Profiling
             }
         }
 
+        public float xOffset = 200f;
+        public float yOffset = 200f;
         private Vector3 CalculateWindowPosition(Transform cameraTransform)
         {
-            Vector3 position;
-
-            if (transformToFollow != null)
-            {
-                position = transformToFollow.position;
-            }
-            else
-            {
-                float windowDistance = Mathf.Max(16.0f / Camera.main.fieldOfView, Camera.main.nearClipPlane + 0.25f);
-                position = cameraTransform.position + (cameraTransform.forward * windowDistance);
-            }
-
+            xOffset = Screen.width * defaultWindowSize.x / 2.0f * windowScale;
+            yOffset = Screen.height * defaultWindowSize.y * windowScale;
+            Vector3 positionWS = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width-xOffset, Screen.height - yOffset, Camera.main.nearClipPlane + 0.25f));
+            Vector3 position = positionWS;
             Vector3 horizontalOffset = cameraTransform.right * windowOffset.x;
             Vector3 verticalOffset = cameraTransform.up * windowOffset.y;
 
@@ -1374,19 +1257,16 @@ namespace Microsoft.MixedReality.Profiling
         {
             Quaternion rotation = cameraTransform.rotation;
 
-            if (!alignToCamera)
+            switch (windowAnchor)
             {
-                switch (windowAnchor)
-                {
-                    case TextAnchor.UpperLeft: rotation *= windowHorizontalRotationInverse * windowVerticalRotationInverse; break;
-                    case TextAnchor.UpperCenter: rotation *= windowHorizontalRotationInverse; break;
-                    case TextAnchor.UpperRight: rotation *= windowHorizontalRotationInverse * windowVerticalRotation; break;
-                    case TextAnchor.MiddleLeft: rotation *= windowVerticalRotationInverse; break;
-                    case TextAnchor.MiddleRight: rotation *= windowVerticalRotation; break;
-                    case TextAnchor.LowerLeft: rotation *= windowHorizontalRotation * windowVerticalRotationInverse; break;
-                    case TextAnchor.LowerCenter: rotation *= windowHorizontalRotation; break;
-                    case TextAnchor.LowerRight: rotation *= windowHorizontalRotation * windowVerticalRotation; break;
-                }
+                case TextAnchor.UpperLeft: rotation *= windowHorizontalRotationInverse * windowVerticalRotationInverse; break;
+                case TextAnchor.UpperCenter: rotation *= windowHorizontalRotationInverse; break;
+                case TextAnchor.UpperRight: rotation *= windowHorizontalRotationInverse * windowVerticalRotation; break;
+                case TextAnchor.MiddleLeft: rotation *= windowVerticalRotationInverse; break;
+                case TextAnchor.MiddleRight: rotation *= windowVerticalRotation; break;
+                case TextAnchor.LowerLeft: rotation *= windowHorizontalRotation * windowVerticalRotationInverse; break;
+                case TextAnchor.LowerCenter: rotation *= windowHorizontalRotation; break;
+                case TextAnchor.LowerRight: rotation *= windowHorizontalRotation * windowVerticalRotation; break;
             }
 
             return rotation;
@@ -1565,7 +1445,7 @@ namespace Microsoft.MixedReality.Profiling
             SetText(data, buffer, bufferIndex, color, justifyLength);
         }
 
-        private void ProfilerValueToString(char[] buffer, int displayedDecimalDigits, TextData data, float value, string unitSuffix, Color color, int justifyLength = 0)
+        private void MillisecondsToString(char[] buffer, int displayedDecimalDigits, TextData data, float milliseconds, Color color, int justifyLength = 0)
         {
             int bufferIndex = 0;
 
@@ -1574,9 +1454,9 @@ namespace Microsoft.MixedReality.Profiling
                 buffer[bufferIndex++] = data.Prefix[i];
             }
 
-            if (value >= 0.0f)
+            if (milliseconds >= 0.0f)
             {
-                bufferIndex = FtoA(value, displayedDecimalDigits, buffer, bufferIndex);
+                bufferIndex = FtoA(milliseconds, displayedDecimalDigits, buffer, bufferIndex);
             }
             else
             {
@@ -1585,10 +1465,8 @@ namespace Microsoft.MixedReality.Profiling
                 buffer[bufferIndex++] = '-';
             }
 
-            foreach (char c in unitSuffix)
-            {
-                buffer[bufferIndex++] = c;
-            }
+            buffer[bufferIndex++] = 'm';
+            buffer[bufferIndex++] = 's';
 
             SetText(data, buffer, bufferIndex, color, justifyLength);
         }
@@ -1674,18 +1552,14 @@ namespace Microsoft.MixedReality.Profiling
             return bufferIndex;
         }
 
-        private ulong AppMemoryUsage
+        private static ulong AppMemoryUsage
         {
             get
             {
 #if WINDOWS_UWP
                 return MemoryManager.AppMemoryUsage;
 #else
-                // "System Used Memory" will return the "working set" of the process which is similar to what Task Manager displays
-                // in Windows. But this is not available on all platforms (like WebGL) so instead return Profiler.GetTotalReservedMemoryLong()
-                // which is the total memory Unity has reserved for current and future allocations.
-                var usedMemory = (ulong)systemUsedMemoryRecorder.LastValue;
-                return (usedMemory != 0) ? usedMemory : (ulong)Profiler.GetTotalReservedMemoryLong();
+                return (ulong)Profiler.GetTotalAllocatedMemoryLong();
 #endif
             }
         }
@@ -1702,11 +1576,11 @@ namespace Microsoft.MixedReality.Profiling
             }
         }
 
-        private static bool WillDisplayedProfilerValueDiffer(float oldValue, float newValue, int displayedDecimalDigits)
+        private static bool WillDisplayedMillisecondsDiffer(float oldMilliseconds, float newMilliseconds, int displayedDecimalDigits)
         {
             float decimalPower = Mathf.Pow(10.0f, displayedDecimalDigits);
 
-            return (int)(oldValue * decimalPower) != (int)(newValue * decimalPower);
+            return (int)(oldMilliseconds * decimalPower) != (int)(newMilliseconds * decimalPower);
         }
 
         private static bool WillDisplayedMeshStatsCountDiffer(long oldCount, long newCount, int displayedDecimalDigits)
