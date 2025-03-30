@@ -1227,13 +1227,11 @@ namespace Microsoft.MixedReality.Profiling
             }
         }
 
-        public float xOffset = 200f;
-        public float yOffset = 200f;
         private Vector3 CalculateWindowPosition(Transform cameraTransform)
         {
-            xOffset = Screen.width * defaultWindowSize.x / 2.0f * windowScale;
-            yOffset = Screen.height * defaultWindowSize.y * windowScale;
-            Vector3 positionWS = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width-xOffset, Screen.height - yOffset, Camera.main.nearClipPlane + 0.25f));
+            var xOffset = Screen.width * defaultWindowSize.x / 2.0f * windowScale;
+            var yOffset = Screen.height * defaultWindowSize.y * windowScale;
+            Vector3 positionWS = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width  - xOffset, Screen.height - yOffset, Camera.main.nearClipPlane + 0.25f));
             Vector3 position = positionWS;
             Vector3 horizontalOffset = cameraTransform.right * windowOffset.x;
             Vector3 verticalOffset = cameraTransform.up * windowOffset.y;
