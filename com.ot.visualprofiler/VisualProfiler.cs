@@ -68,7 +68,7 @@ namespace Microsoft.MixedReality.Profiling
         }
 
         [SerializeField, Tooltip("What frame rate should the app target if one cannot be determined by the XR device.")]
-        private float defaultFrameRate = 60.0f;
+        private float defaultFrameRate = 30.0f;
 
         /// <summary>
         /// What frame rate should the app target if one cannot be determined by the XR device.
@@ -123,7 +123,7 @@ namespace Microsoft.MixedReality.Profiling
 
         [Header("Window Settings")]
         [SerializeField, Tooltip("What part of the view port to anchor the window to.")]
-        private TextAnchor windowAnchor = TextAnchor.LowerCenter;
+        private TextAnchor windowAnchor = TextAnchor.UpperRight;
 
         /// <summary>
         /// What part of the view port to anchor the window to.
@@ -135,7 +135,7 @@ namespace Microsoft.MixedReality.Profiling
         }
 
         [SerializeField, Tooltip("The offset from the view port center applied based on the window anchor selection.")]
-        private Vector2 windowOffset = new Vector2(0.1f, 0.1f);
+        private Vector2 windowOffset = new Vector2(0.0f, 0.0f);
 
         /// <summary>
         /// The offset from the view port center applied based on the window anchor selection.
@@ -171,7 +171,7 @@ namespace Microsoft.MixedReality.Profiling
         }
 
         [SerializeField, Tooltip("Should the window snap to location rather than interpolate?")]
-        private bool snapWindow = false;
+        private bool snapWindow = true;
 
         /// <summary>
         /// Should the window snap to location rather than interpolate?
@@ -249,7 +249,7 @@ namespace Microsoft.MixedReality.Profiling
         private Vector2Int fontCharacterSize = new Vector2Int(16, 30);
 
         [SerializeField, Tooltip("The x and y scale to render a character at.")]
-        private Vector2 fontScale = new Vector2(0.00023f, 0.00028f);
+        private Vector2 fontScale = new Vector2(0.00063f, 0.00068f);
 
         [SerializeField, Min(1), Tooltip("How many characters are in a row of the font texture.")]
         private int fontColumns = 32;
