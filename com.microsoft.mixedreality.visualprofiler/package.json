@@ -1,27 +1,14 @@
 {
-  "name": "com.microsoft.mixedreality.visualprofiler",
-  "version": "3.8.0",
-  "displayName": "Microsoft Mixed Reality Visual Profiler",
+  "name": "com.ot.visualprofiler",
+  "version": "4.0.0",
+  "displayName": "Visual Profiler(fork of Microsoft Mixed Reality Visual Profiler)",
   "description": "Provides a drop in solution for viewing your mixed reality Unity application's frame rate, scene complexity, and memory usage.",
   "documentationUrl": "https://github.com/microsoft/VisualProfiler-Unity/blob/main/README.md",
-  "unity": "2021.3",
-  "unityRelease": "26f1",
-  "author": "Microsoft",
+  "unity": "6000.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/VisualProfiler-Unity"
-  },
-  "bugs": {
-    "url": "https://github.com/microsoft/VisualProfiler-Unity/issues"
-  },
-  "keywords": [
-    "microsoft",
-    "mixed",
-    "reality",
-    "hololens",
-    "ar",
-    "vr",
-    "xr"
-  ]
+    "url": "https://github.com//VisualProfiler-Unity"
+  }
+
 }
