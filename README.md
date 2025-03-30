@@ -1,3 +1,8 @@
+##################################################################################
+# Forked from microsoft/VisualProfiler-Unity 
+Modified to make it work in screen space for non vr - Tested on Android
+################################################################################
+
 # Visual Profiler
 
 The Visual Profiler provides a drop in solution for viewing your mixed reality Unity application's frame rate, scene complexity, and memory usage across a variety of platforms.
